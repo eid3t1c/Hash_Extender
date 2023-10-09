@@ -1,4 +1,4 @@
-# **Length_Extender**
+# **Hash_Extender**
 
 An automated tool implementing Hash Length Extension attack on ```MD4```,```MD5```,```SHA1```,```SHA256``` and ```SHA512```
 
