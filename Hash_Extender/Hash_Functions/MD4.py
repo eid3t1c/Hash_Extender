@@ -41,7 +41,7 @@ def MD4(message:bytes,state:List[int]):
 
     # Default MD4 state
     Registers = state
-    print(Registers)
+    
     
     seperated = seperate(message)
     # How many blocks
