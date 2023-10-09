@@ -153,7 +153,7 @@ Block2 =  ```Mister M6 (9) + \x80 + \x00 (46)``` + **Length_of_message** (8)   =
 
 ![image](https://github.com/eid3t1c/hash_cryptohack/assets/102302619/4d5c6dca-9312-46f0-b461-338bc1443857)
 
-Notice how the hash of the first block which we know is ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` is used as a state for SHA-256, in order for ```Block2``` which we also know how its padded to get hashed, for the final hash aka ```signature``` that we want to know.
+Notice how the hash of the first block which we know is ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` is used as a state for SHA-256, in order for ```Block2``` which we also know how its padded to get hashed, for the final hash aka ```signature``` to be produced.
 
 So if i use SHA-256 with default state the hash ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` to hash ```Mister M6 (9) + \x80 + \x00 (46) + Length_of_message (8)``` i will produce the same signature as the server and i will be authenticated without knowing the key.
 
