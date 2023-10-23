@@ -94,7 +94,8 @@ padded message = ```secret + \x80 + \x00 * 49 + \x00\x00\x00\x00\x00\x00\x000```
 This padded message is processed from a compression function which processes the two inputs, one **N** bits long and the other **B** bits long, to produce an **N** bit output.
 ### **The N bit output is then passed as a new state to the compression function to process the next block of message.**
 
-![image](https://github.com/eid3t1c/hash_cryptohack/assets/102302619/4a852c99-b4a4-42c9-bfdd-573816e348c4)
+![image](https://github.com/eid3t1c/Hash_Extender/assets/102302619/bea32df7-8b2d-46aa-8c49-31fcf7021548)
+
 
 
 ## Why is Merkle–Damgård construction a problem
@@ -131,7 +132,8 @@ If i were to know that the key lengths is 40 i could easily produce a valid sign
 
 I do know how the ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` was produced.
 
-![image](https://github.com/eid3t1c/hash_cryptohack/assets/102302619/a3c56a36-81b1-4f84-b955-64a88922f807)
+![image](https://github.com/eid3t1c/Hash_Extender/assets/102302619/2775ed2b-3222-44fd-a1e5-c9da3fbd5513)
+
 
 I choose the control data to be  ```Mister M6 ```
 
@@ -151,7 +153,8 @@ Length_of_message = (Block1 (64) + Mister M6 (9)) * 8 = ```\x00\x00\x00\x00\x00\
 <br>
 Block2 =  ```Mister M6 (9) + \x80 + \x00 (46)``` + **Length_of_message** (8)   = 64
 
-![image](https://github.com/eid3t1c/hash_cryptohack/assets/102302619/4d5c6dca-9312-46f0-b461-338bc1443857)
+![image](https://github.com/eid3t1c/Hash_Extender/assets/102302619/21c69369-d28a-4ba9-8354-bc66bb7917c1)
+
 
 Notice how the hash of the first block which we know is ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` is used as a state for SHA-256, in order for ```Block2``` which we also know how its padded to get hashed, for the final hash aka ```signature``` to be produced.
 
