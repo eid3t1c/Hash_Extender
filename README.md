@@ -58,77 +58,120 @@ sudo pip install .
 
 # What is Length Extension Attack
 
-A ```length extension attack``` is a type of security exploit where an adversary leverages knowledge of the hash value of a key, along with the length of that key, to compute the hash of an ```attacker-controlled additional message``` (referred to as message2), all without requiring any knowledge of the original content of key. This attack becomes particularly problematic when a hash function is used as part of a message authentication code construction in the form of Hash(key ‖ message). In situations where the length of the key and message is known to the attacker, this vulnerability can be exploited to append extra information to the message, creating a valid hash without the need for knowledge of the secret key. This vulnerability is especially pronounced in algorithms like ```MD5```, ```SHA-1```, and many ```SHA-2``` variants, which are constructed based on the ```Merkle–Damgård construction```.
+A **<span style="color:red">length extension attack</span>** is a type of security exploit where an HMAC of the form `Hash(Secret Key || Message)` is used. An adversary leverages knowledge of a **<span style="color:#0066cc">Message</span>**, its corresponding **<span style="color:#9999ff">Hash</span>**, and the length of the **<span style="color:#b36b00">Secret Key</span>** to compute a valid hash of an `attacker-controlled additional message` (referred to as **<span style="color:#0066cc">Message2</span>**), all without requiring any knowledge of the original content of the key.
+
+This vulnerability is especially pronounced in algorithms that use the `Merkle–Damgård construction` and do not truncate the final hash. Known algorithms like `MD5`, `SHA-1`, and many `SHA-2` variants are susceptible to this attack.
+
 
 # Why is Length Extension Attack feasible
 
-## Merkle–Damgård construction
+## Merkle–Damgård Construction
 
-The Merkle-Damgard construction is a technique used to create secure hash functions from compression functions when working with fixed-size blocks, such as 64 bytes in the case of SHA-256. Even if the input message's size is not a perfect multiple of this block size, we always add padding, ensuring it fits.
+The `Merkle–Damgård` construction is a technique used to create secure hash functions from compression functions when working with fixed-size blocks, such as 64 bytes in the case of SHA-256. Even if the input message's size is not a perfect multiple of this block size, padding is always added to ensure it fits.
 
-The way padding works:
+### The Way Padding Works:
 
-Message Block = **B** <br>
-Number of bytes used for message length = **L** <br>
-Hash State = **N**
+For `Hash Function` = SHA-256, `Block_Size` = 64 bytes, and `Message` = "The black sheep that wanted to feel free":
 
-Input Message: Suppose we have a message, let's call it "secret," that we want to hash.
+Every `Hash Function` uses a fixed number of bytes to store the message length. SHA-256 represents the message's length as an 8-byte value.
 
-1. Appending the Start of Padding: the hash function begins by appending a single byte \x80 to the end of the message. This byte acts as a marker indicating the start of the padding process.
-2. Adding Zero Bytes: To ensure that the message length becomes a specific value, the hash function repeatedly adds the byte \x00 until the total length of the message reaches ``` B - L``` bytes.
-3. The ramaining L bytes are used to represent the length of the message in bits.
+**Example Workflow:**
 
-### For Example in SHA-256
+1. **Appending the Start of Padding**:  
+   The hash function begins by appending a single byte `\x80` to the end of the message. This byte acts as a marker indicating the start of the padding process.
 
-message = "secret" = 6 bytes
-1. append \x80 -> ```"secret\x80"```
-2. append \x00 until block length is 56 (SHA-256 block size is 64) ```"secret\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"```
-3. Convert the **length** of the message in bits (**length** * 8 ) and represent the result as 8 bytes.
-   ```python
-   (6*8).to_bytes(8,byteorder="big") = \x00\x00\x00\x00\x00\x00\x000
-   ```
+2. **Adding Zero Bytes**:  
+   To ensure that the message length aligns with the required block size, the hash function repeatedly adds the byte `\x00` until the total length of the padded message reaches `B - L` bytes.  
 
-padded message = ```secret + \x80 + \x00 * 49 + \x00\x00\x00\x00\x00\x00\x000```
+   - Here, `B` is the block size (64 bytes for SHA-256), and `L` is the length of the message representation (8 bytes).
 
+3. **Adding the Length of the Original Message**:  
+   The remaining `L` bytes are used to represent the length of the original message in bits, as an 8-byte value.
+
+
+### **Note on Endianness:**
+
+Some hash functions represent the length of the original message as either **Big Endian** or **Little Endian**.
+
+- **Big Endian**: SHA-1, SHA-2 famillies
+- **Little Endian**: MD familly
+
+<a href="https://www.freecodecamp.org/news/what-is-endianness-big-endian-vs-little-endian/">More Info</a>
+
+
+### Example of Padding:
+
+**Input Message**: "The black sheep that wanted to feel free"  
+
+**Padded Output**:
+
+```html
+                Message                                              Padding                                     Length of the message
+|----------------------------------------|-----------------------------------------------------------------|--------------------------------|
+ The black sheep that wanted to feel free \x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00   \x00\x00\x00\x00\x00\x00\x01@
+```
+
+This is then handled by the compression function and results to `1adfd47d1a16c931d36e9b79622db9f50c92df73cba0c535f685e33a34c32fa7`
+
+Using my own SHA-256 where I can print some internal values.
+```python
+Message = b"The black sheep that wanted to feel free"
+SHA256(Message)
+```
+
+```cmd
+Input Message: The black sheep that wanted to feel free
+Message Length: 40
+Padded Message: The black sheep that wanted to feel free\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01@
+SHA256 Hash: 1adfd47d1a16c931d36e9b79622db9f50c92df73cba0c535f685e33a34c32fa7
+```
+The above is one block. If a message larger than 56 bytes was given we would have two or more blocks.
 
 This padded message is processed from a compression function which processes the two inputs, one **N** bits long and the other **B** bits long, to produce an **N** bit output.
-### **The N bit output is then passed as a new state to the compression function to process the next block of message.**
+
 
 ![image](https://github.com/eid3t1c/Hash_Extender/assets/102302619/bea32df7-8b2d-46aa-8c49-31fcf7021548)
 
 
 
-## Why is Merkle–Damgård construction a problem
+## Why is Merkle–Damgård Construction a Problem
 
-Let's assume the following Authentication System:
+Let's consider the following authentication system:
 
-The authentication system has a secret key of length 40.
+### The Authentication System:
 
-### To authenticate a user or entity, the system requests two pieces of information:
+The system uses a **secret key** of length **40** bytes.
 
-1. Passcode: This is something the user provides.
-2. Signature: This is also provided by the user.
+### To Authenticate a User or Entity, the System Requests Two Pieces of Information:
+
+1. **Passcode**: Provided by the user.
+2. **Signature**: Also provided by the user.
 
 ### Hashing Process:
 
-The system uses the SHA-256 hashing algorithm to process the data.
-It **pre-pends** the secret key  and the user-provided passcode.
-It then calculates the SHA-256 hash of the concatenated "Key + passcode"
+1. The system uses the SHA-256 hashing algorithm to process the data.
+2. It **pre-pends** the secret key to the user-provided passcode.
+3. It calculates the SHA-256 hash of the concatenated string: `SHA256(Key || Passcode)`.
 
 ### Comparison:
 
-The system compares the calculated hash with the user-provided signature.
-### Authentication Result:
+- The system calculates the hash and compares it with the user-provided signature.
+- If the calculated hash matches the signature, the authentication is successful.
+- This implies that only someone who knows the **secret key** could generate a valid hash.
 
-If the calculated hash and the user-provided signature match, the authentication is successful.
-This means only the admin who knows the secret key could produce the same hash as the system.
+---
 
-# Length Extension implement
+## Length Extension Attack in Action
 
-By sending the word  ```administrator ``` i receive the hash ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97```
-If i were to know that the key lengths is 40 i could easily produce a valid signature and authenticate without knowing the actual value of the key.
+Consider the following scenario:
 
-## How
+1. By sending the passcode `administrator`, I receive the hash:  
+   `63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97`.
+
+2. Knowing the secret key's length is **40 bytes**, I can exploit the Merkle–Damgård construction to produce a valid signature **without knowing the actual key value**.
+
+
+### How
 
 I do know how the ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` was produced.
 
@@ -137,30 +180,49 @@ I do know how the ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd11
 
 I choose the control data to be  ```Mister M6 ```
 
-I will send to the server the message ```administrator (13) + \x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8 (11) + Mister M6 (9)``` = 33
+I will send to the server the message ```administrator\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8Mister M6``` = 33
 
-## WHY
+### Why Length Extension Attacks Work
 
-Because the server will prepend its key ``` key (40) + admninistrator (13) + \x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8 (11) + Mister M6 (9)``` = 73
-1. It will consider it a message of 73 bytes.
-2. It will pad it
-3. And it will seperate it to blocks
+The vulnerability arises because the server pre-pends its secret key and computes the hash in the form:  
+`HASH(Key || Message)`.
 
-Block1 =  ```key (40) + admninistrator (13) + \x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8 (11) ``` = 64 
+---
+
+### Example Padding and Blocks
+
+The server processes the following message:
+
+```html
+                         Message (73 bytes)                                           Padding                    Length of the message(8)
+|---------------------------------------------------------------------|-----------------------------------|------------------------------|
+ keyadministrator\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8Mister M6 \x80\x00\x00\x00...\x00\x00\x00\x00 \x00\x00\x00\x00\x00\x00\x02H
+```
+``` keyadmninistrator\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8Mister M6``` = 73
+
+- The server considers this as a 73-byte message.
+
+- Padding is added to align it with the block size.
+
+- The server splits it into blocks for SHA-256 processing:
+
+Block1 =  ```keyadministrator\x80\x00\x00\x00\x00\x00\x00\x00\x00\x01\xa8``` = 64 
+
+Block2 = ```Mister M6\x80\x00\x00\x00...\x00\x00\x00\x00 x00\x00\x00\x00\x00\x00\x02H``` = 64
 <br>
-<br>
-Length_of_message = (Block1 (64) + Mister M6 (9)) * 8 = ```\x00\x00\x00\x00\x00\x00\x02H```
-<br>
-Block2 =  ```Mister M6 (9) + \x80 + \x00 (46)``` + **Length_of_message** (8)   = 64
+
 
 ![image](https://github.com/eid3t1c/Hash_Extender/assets/102302619/21c69369-d28a-4ba9-8354-bc66bb7917c1)
 
 
-Notice how the hash of the first block which we know is ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` is used as a state for SHA-256, in order for ```Block2``` which we also know how its padded to get hashed, for the final hash aka ```signature``` to be produced.
+Notice how the hash of the first block, which we know is:
+```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` can be used as the state for SHA-256, allowing the second block (`Block2`) to be hashed along with its padding to produce the final hash (signature).
 
-So if i use SHA-256 with default state the hash ```63479ad69a090b258277ec8fba6f99419a2ffb248981510657c944ccd1148e97``` to hash ```Mister M6 (9) + \x80 + \x00 (46) + Length_of_message (8)``` i will produce the same signature as the server and i will be authenticated without knowing the key.
+So, to perform a **length extension attack**, we can "mimic" the SHA-256 process. Starting with the known hash of `Block1` (which is the current state of the hash function), we can extend the message (which would be `Mister M6\x80\x00\x00\x00...\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02H` ) and compute the final hash to match the signature.
 
-So thanks to ```Merkle–Damgård``` construction i can mimic the ```SHA-256``` and hash the ```Block2``` message with the hash of ```Block1```
+This works because the **Merkle–Damgård** construction, which is used in SHA-256, allows you to append data and continue the hash computation from the current state (the hash of `Block1`), essentially bypassing the need for the original message content or the key.
+
+### Example Code
 
 ```python
 from hashlib import sha256
